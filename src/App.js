@@ -1,7 +1,36 @@
 import React from 'react';
 
+function useLocalStorage(
+  key,
+  defaultValue = '',
+  { serialize = JSON.stringify, deSerialize = JSON.parse } = {}
+) {
+  const [state, setState] = React.useState(() => {
+    const valueInLocalStorage = window.localStorage.getItem(key);
+    if (valueInLocalStorage) {
+      return deSerialize(valueInLocalStorage);
+    }
+    return defaultValue === 'function' ? defaultValue() : defaultValue;
+  });
+
+  const prevKeyRef = React.useRef(key);
+
+  React.useEffect(() => {
+    const keyRef = prevKeyRef.current;
+    if (keyRef !== key) {
+      window.localStorage.removeItem(key);
+    }
+    prevKeyRef.current = key;
+    window.localStorage.setItem(key, serialize(state));
+  }, [key, serialize, state]);
+
+  return [state, setState];
+}
 function Board() {
-  const [squares, setSquares] = React.useState(Array(9).fill(null));
+  const [squares, setSquares] = useLocalStorage(
+    'tic-tac-toe',
+    Array(9).fill(null)
+  );
 
   const nextValue = calculateNextValue(squares);
   const winner = calculateWinner(squares);
